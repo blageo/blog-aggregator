@@ -11,5 +11,13 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	println(cfg.CurrentUserName)
+	err = cfg.SetUser("blageo")
+	if err != nil {
+		log.Fatal(err)
+	}
+	cfg, err = config.Read()
+	if err != nil {
+		log.Fatal(err)
+	}
+	log.Print(cfg)
 }
