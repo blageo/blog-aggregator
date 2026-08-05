@@ -1,11 +1,14 @@
 package main
 
 import (
+	"database/sql"
 	"fmt"
 	"log"
 	"os"
 
 	"example.com/blog-aggregator/internal/config"
+	"example.com/blog-aggregator/internal/database"
+	_ "github.com/lib/pq"
 )
 
 func main() {
@@ -16,10 +19,21 @@ func main() {
 
 	s := state{cfg_ptr: &cfg}
 
+	db, err := sql.Open("postgres", cfg.DBUrl)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer db.Close()
+
+	dbQueries := database.New(db)
+
+	s.db = dbQueries
+
 	cmds := commands{
 		handlers: make(map[string]func(*state, command) error),
 	}
 	cmds.register("login", handlerLogin)
+	cmds.register("register", handlerRegister)
 
 	if len(os.Args) < 2 {
 		fmt.Fprintln(os.Stderr, "not enough arguments provided, a command name is required")

@@ -1,3 +1,5 @@
+-- postgres://postgres:postgres@localhost:5432/gator
+
 -- +goose Up
 CREATE TABLE users (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
