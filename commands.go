@@ -78,6 +78,24 @@ func handlerRegisterUser(s *state, cmd command) error {
 	return nil
 }
 
+func handlerGetUsers(s *state, cmd command) error {
+	if len(cmd.args) > 0 {
+		return errors.New("users command does not take any arguments")
+	}
+	users, err := s.db.GetUsers(context.Background())
+	if err != nil {
+		return err
+	}
+	for _, user := range users {
+		if user.Name == s.cfg_ptr.CurrentUserName {
+			fmt.Println(user.Name, "(current)")
+		} else {
+			fmt.Println(user.Name)
+		}
+	}
+	return nil
+}
+
 func handlerReset(s *state, cmd command) error {
 	if len(cmd.args) > 0 {
 		return errors.New("reset command does not take any arguments")
