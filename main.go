@@ -36,6 +36,7 @@ func main() {
 	cmds.registerCommand("register", handlerRegisterUser)
 	cmds.registerCommand("reset", handlerReset)
 	cmds.registerCommand("users", handlerGetUsers)
+	cmds.registerCommand("agg", handlerAggregateFeeds)
 
 	if len(os.Args) < 2 {
 		fmt.Fprintln(os.Stderr, "not enough arguments provided, a command name is required")
