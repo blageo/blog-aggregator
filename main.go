@@ -32,8 +32,9 @@ func main() {
 	cmds := commands{
 		handlers: make(map[string]func(*state, command) error),
 	}
-	cmds.register("login", handlerLogin)
-	cmds.register("register", handlerRegister)
+	cmds.registerCommand("login", handlerLogin)
+	cmds.registerCommand("register", handlerRegisterUser)
+	cmds.registerCommand("reset", handlerReset)
 
 	if len(os.Args) < 2 {
 		fmt.Fprintln(os.Stderr, "not enough arguments provided, a command name is required")

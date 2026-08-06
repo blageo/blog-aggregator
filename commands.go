@@ -45,7 +45,7 @@ func handlerLogin(s *state, cmd command) error {
 	return nil
 }
 
-func handlerRegister(s *state, cmd command) error {
+func handlerRegisterUser(s *state, cmd command) error {
 	if len(cmd.args) < 1 {
 		return errors.New("no arguments provided for register command")
 	}
@@ -78,6 +78,19 @@ func handlerRegister(s *state, cmd command) error {
 	return nil
 }
 
+func handlerReset(s *state, cmd command) error {
+	if len(cmd.args) > 0 {
+		return errors.New("reset command does not take any arguments")
+	}
+	err := s.db.Reset(context.Background())
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "could not reset database:", err)
+		os.Exit(1)
+	}
+	println("Database reset successfully.")
+	return nil
+}
+
 func (c *commands) run(s *state, cmd command) error {
 	handler, exists := c.handlers[cmd.name]
 	if !exists {
@@ -86,7 +99,7 @@ func (c *commands) run(s *state, cmd command) error {
 	return handler(s, cmd)
 }
 
-func (c *commands) register(name string, f func(*state, command) error) {
+func (c *commands) registerCommand(name string, f func(*state, command) error) {
 	if c.handlers == nil {
 		c.handlers = make(map[string]func(*state, command) error)
 	}
