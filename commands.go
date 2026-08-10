@@ -162,6 +162,62 @@ func handlerAggregateFeeds(s *state, cmd command) error {
 	return nil
 }
 
+func handlerAddFeed(s *state, cmd command) error {
+	if len(cmd.args) < 2 {
+		return errors.New("not enough arguments provided for addfeed command, usage: addfeed <name> <url>")
+	}
+	name := cmd.args[0]
+	url := cmd.args[1]
+
+	user, err := s.db.GetUserByName(context.Background(), s.cfg_ptr.CurrentUserName)
+	if err != nil {
+		return fmt.Errorf("failed to get current user: %w", err)
+	}
+
+	feedParams := database.CreateFeedParams{
+		ID:        uuid.New(),
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+		Name:      name,
+		Url:       url,
+		UserID:    user.ID,
+	}
+
+	feed, err := s.db.CreateFeed(context.Background(), feedParams)
+	if err != nil {
+		return fmt.Errorf("failed to create feed in database: %w", err)
+	}
+
+	fmt.Printf("Feed '%s' added successfully for user '%s'.\n", name, user.Name)
+	fmt.Printf("Feed record: %+v\n", feed)
+
+	return nil
+}
+
+func handlerGetFeeds(s *state, cmd command) error {
+	if len(cmd.args) > 0 {
+		return errors.New("feeds command does not take any arguments")
+	}
+
+	feeds, err := s.db.GetFeeds(context.Background())
+	if err != nil {
+		return fmt.Errorf("failed to get feeds: %w", err)
+	}
+
+	if len(feeds) == 0 {
+		fmt.Println("No feeds found.")
+		return nil
+	}
+
+	fmt.Println("Feeds:")
+	for _, feed := range feeds {
+		fmt.Printf("- %s (%s) by %s\n", feed.FeedName, feed.Url, feed.UserName)
+	}
+
+	return nil
+
+}
+
 func fetchFeed(ctx context.Context, feedURL string) (*RSSFeed, error) {
 	req, err := http.NewRequestWithContext(ctx, "GET", feedURL, nil)
 	if err != nil {
