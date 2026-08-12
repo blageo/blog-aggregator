@@ -188,6 +188,17 @@ func handlerAddFeed(s *state, cmd command) error {
 		return fmt.Errorf("failed to create feed in database: %w", err)
 	}
 
+	_, err = s.db.CreateFeedFollow(context.Background(), database.CreateFeedFollowParams{
+		ID:        uuid.New(),
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+		UserID:    user.ID,
+		FeedID:    feed.ID,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to create feed follow in database: %w", err)
+	}
+
 	fmt.Printf("Feed '%s' added successfully for user '%s'.\n", name, user.Name)
 	fmt.Printf("Feed record: %+v\n", feed)
 
@@ -216,6 +227,64 @@ func handlerGetFeeds(s *state, cmd command) error {
 
 	return nil
 
+}
+
+func handlerFollowFeed(s *state, cmd command) error {
+	if len(cmd.args) < 1 {
+		return errors.New("no feed URL provided for follow command")
+	}
+
+	feedURL := cmd.args[0]
+
+	feed, err := s.db.GetFeedByURL(context.Background(), feedURL)
+	if err != nil {
+		return fmt.Errorf("failed to get feed by URL: %w", err)
+	}
+
+	user, err := s.db.GetUserByName(context.Background(), s.cfg_ptr.CurrentUserName)
+	if err != nil {
+		return fmt.Errorf("failed to get current user: %w", err)
+	}
+
+	followParams := database.CreateFeedFollowParams{
+		ID:        uuid.New(),
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+		UserID:    user.ID,
+		FeedID:    feed.FeedID,
+	}
+
+	followRow, err := s.db.CreateFeedFollow(context.Background(), followParams)
+	if err != nil {
+		return fmt.Errorf("failed to create feed follow in database: %w", err)
+	}
+
+	fmt.Printf("User '%s' is now following feed '%s'.\n", followRow.UserName, followRow.FeedName)
+
+	return nil
+}
+
+func handlerPrintFeedsForUser(s *state, cmd command) error {
+	userID, err := s.db.GetUserByName(context.Background(), s.cfg_ptr.CurrentUserName)
+	if err != nil {
+		return fmt.Errorf("failed to get current user: %w", err)
+	}
+	feeds, err := s.db.GetFeedFollowsForUser(context.Background(), userID.ID)
+	if err != nil {
+		return fmt.Errorf("failed to get feeds: %w", err)
+	}
+
+	if len(feeds) == 0 {
+		fmt.Println("No feeds found.")
+		return nil
+	}
+
+	fmt.Println("Feeds:")
+	for _, feed := range feeds {
+		fmt.Printf("- %s by %s\n", feed.FeedName, feed.UserName)
+	}
+
+	return nil
 }
 
 func fetchFeed(ctx context.Context, feedURL string) (*RSSFeed, error) {
