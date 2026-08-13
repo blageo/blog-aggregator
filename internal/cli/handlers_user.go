@@ -1,7 +1,6 @@
 package cli
 
 import (
-	"context"
 	"errors"
 	"fmt"
 
@@ -17,14 +16,14 @@ func HandlerLogin(s *State, cmd Command) error {
 	if len(cmd.Args) > 1 {
 		return errors.New("usage: login <username>")
 	}
-	if _, err := s.db.GetUserByName(context.Background(), cmd.Args[0]); err != nil {
+	if _, err := s.db.GetUserByName(s.ctx, cmd.Args[0]); err != nil {
 		return fmt.Errorf("user does not exist: %w", err)
 	}
-	err := s.cfg_ptr.SetUser(cmd.Args[0])
+	err := s.cfg.SetUser(cmd.Args[0])
 	if err != nil {
 		return err
 	}
-	println("User set to:", cmd.Args[0])
+	fmt.Println("User set to:", cmd.Args[0])
 	return nil
 }
 
@@ -43,17 +42,17 @@ func HandlerRegisterUser(s *State, cmd Command) error {
 		Name:      cmd.Args[0],
 	}
 
-	_, err := s.db.CreateUser(context.Background(), userParams)
+	_, err := s.db.CreateUser(s.ctx, userParams)
 	if err != nil {
 		return fmt.Errorf("could not create user: %w", err)
 	}
 
-	err = s.cfg_ptr.SetUser(cmd.Args[0])
+	err = s.cfg.SetUser(cmd.Args[0])
 	if err != nil {
 		return fmt.Errorf("could not set current user: %w", err)
 	}
-	println("User registered:", cmd.Args[0])
-	userData, err := s.db.GetUserByName(context.Background(), cmd.Args[0])
+	fmt.Println("User registered:", cmd.Args[0])
+	userData, err := s.db.GetUserByName(s.ctx, cmd.Args[0])
 	if err != nil {
 		return fmt.Errorf("could not fetch newly created user: %w", err)
 	}
@@ -66,12 +65,12 @@ func HandlerGetUsers(s *State, cmd Command) error {
 	if len(cmd.Args) > 0 {
 		return errors.New("users command does not take any arguments")
 	}
-	users, err := s.db.GetUsers(context.Background())
+	users, err := s.db.GetUsers(s.ctx)
 	if err != nil {
 		return err
 	}
 	for _, user := range users {
-		if user.Name == s.cfg_ptr.CurrentUserName {
+		if user.Name == s.cfg.CurrentUserName {
 			fmt.Println(user.Name, "(current)")
 		} else {
 			fmt.Println(user.Name)
@@ -85,10 +84,10 @@ func HandlerReset(s *State, cmd Command) error {
 	if len(cmd.Args) > 0 {
 		return errors.New("reset command does not take any arguments")
 	}
-	err := s.db.Reset(context.Background())
+	err := s.db.Reset(s.ctx)
 	if err != nil {
 		return fmt.Errorf("could not reset database: %w", err)
 	}
-	println("Database reset successfully.")
+	fmt.Println("Database reset successfully.")
 	return nil
 }

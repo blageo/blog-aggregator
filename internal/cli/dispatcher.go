@@ -14,13 +14,14 @@ import (
 // State holds the shared dependencies (database access and config) used by
 // command handlers.
 type State struct {
-	db      *database.Queries
-	cfg_ptr *config.Config
+	db  *database.Queries
+	cfg *config.Config
+	ctx context.Context
 }
 
 // NewState builds a State from a database connection and a loaded config.
-func NewState(db *database.Queries, cfg *config.Config) *State {
-	return &State{db: db, cfg_ptr: cfg}
+func NewState(ctx context.Context, db *database.Queries, cfg *config.Config) *State {
+	return &State{db: db, cfg: cfg, ctx: ctx}
 }
 
 // Command represents a single invocation of a CLI command, i.e. its name and
@@ -32,7 +33,7 @@ type Command struct {
 
 // Commands maps command names to their handler functions.
 type Commands struct {
-	handlers map[string]func(*State, Command) error // map of command names to their handler functions
+	handlers map[string]func(*State, Command) error
 }
 
 // newTimestampedID generates a new UUID and matching CreatedAt/UpdatedAt
@@ -44,7 +45,7 @@ func newTimestampedID() (uuid.UUID, time.Time, time.Time) {
 
 func MiddlewareLoggedIn(handler func(s *State, cmd Command, user database.User) error) func(*State, Command) error {
 	return func(s *State, cmd Command) error {
-		user, err := s.db.GetUserByName(context.Background(), s.cfg_ptr.CurrentUserName)
+		user, err := s.db.GetUserByName(s.ctx, s.cfg.CurrentUserName)
 		if err != nil {
 			return fmt.Errorf("failed to get current user: %w", err)
 		}

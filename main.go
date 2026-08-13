@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"log"
@@ -13,6 +14,8 @@ import (
 )
 
 func main() {
+	ctx := context.Background()
+
 	cfg, err := config.Read()
 	if err != nil {
 		log.Fatal(err)
@@ -26,7 +29,7 @@ func main() {
 
 	dbQueries := database.New(db)
 
-	s := cli.NewState(dbQueries, &cfg)
+	s := cli.NewState(ctx, dbQueries, &cfg)
 
 	cmds := cli.Commands{}
 	cmds.RegisterCommand("login", cli.HandlerLogin)

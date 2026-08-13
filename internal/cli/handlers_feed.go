@@ -1,7 +1,6 @@
 package cli
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"strings"
@@ -12,15 +11,9 @@ import (
 // HandlerAggregateFeeds fetches a feed and prints its contents to the
 // terminal.
 func HandlerAggregateFeeds(s *State, cmd Command) error {
-	/* uncomment to allow user passed feeds in CLI
-	if len(cmd.args) < 1 {
-		return errors.New("no feed URL provided for aggregation")
-	}
-	feedURL := cmd.args[0]
-	*/
 	feedURL := "https://www.wagslane.dev/index.xml"
 
-	feed, err := fetchFeed(context.Background(), feedURL)
+	feed, err := fetchFeed(s.ctx, feedURL)
 	if err != nil {
 		return fmt.Errorf("failed to fetch feed: %w", err)
 	}
@@ -63,13 +56,13 @@ func HandlerAddFeed(s *State, cmd Command, user database.User) error {
 		UserID:    user.ID,
 	}
 
-	feed, err := s.db.CreateFeed(context.Background(), feedParams)
+	feed, err := s.db.CreateFeed(s.ctx, feedParams)
 	if err != nil {
 		return fmt.Errorf("failed to create feed in database: %w", err)
 	}
 
 	followID, followCreatedAt, followUpdatedAt := newTimestampedID()
-	_, err = s.db.CreateFeedFollow(context.Background(), database.CreateFeedFollowParams{
+	_, err = s.db.CreateFeedFollow(s.ctx, database.CreateFeedFollowParams{
 		ID:        followID,
 		CreatedAt: followCreatedAt,
 		UpdatedAt: followUpdatedAt,
@@ -92,7 +85,7 @@ func HandlerGetFeeds(s *State, cmd Command) error {
 		return errors.New("feeds command does not take any arguments")
 	}
 
-	feeds, err := s.db.GetFeeds(context.Background())
+	feeds, err := s.db.GetFeeds(s.ctx)
 	if err != nil {
 		return fmt.Errorf("failed to get feeds: %w", err)
 	}
@@ -119,7 +112,7 @@ func HandlerFollowFeed(s *State, cmd Command, user database.User) error {
 
 	feedURL := cmd.Args[0]
 
-	feed, err := s.db.GetFeedByURL(context.Background(), feedURL)
+	feed, err := s.db.GetFeedByURL(s.ctx, feedURL)
 	if err != nil {
 		return fmt.Errorf("failed to get feed by URL: %w", err)
 	}
@@ -133,7 +126,7 @@ func HandlerFollowFeed(s *State, cmd Command, user database.User) error {
 		FeedID:    feed.FeedID,
 	}
 
-	followRow, err := s.db.CreateFeedFollow(context.Background(), followParams)
+	followRow, err := s.db.CreateFeedFollow(s.ctx, followParams)
 	if err != nil {
 		return fmt.Errorf("failed to create feed follow in database: %w", err)
 	}
@@ -151,12 +144,12 @@ func HandlerUnfollowFeed(s *State, cmd Command, user database.User) error {
 
 	feedURL := cmd.Args[0]
 
-	feed, err := s.db.GetFeedByURL(context.Background(), feedURL)
+	feed, err := s.db.GetFeedByURL(s.ctx, feedURL)
 	if err != nil {
 		return fmt.Errorf("failed to get feed by URL: %w", err)
 	}
 
-	err = s.db.DeleteFeedFollow(context.Background(), database.DeleteFeedFollowParams{
+	err = s.db.DeleteFeedFollow(s.ctx, database.DeleteFeedFollowParams{
 		UserID: user.ID,
 		FeedID: feed.FeedID,
 	})
@@ -171,7 +164,7 @@ func HandlerUnfollowFeed(s *State, cmd Command, user database.User) error {
 
 // HandlerPrintFeedsForUser prints all feeds the logged-in user follows.
 func HandlerPrintFeedsForUser(s *State, cmd Command, user database.User) error {
-	feeds, err := s.db.GetFeedFollowsForUser(context.Background(), user.ID)
+	feeds, err := s.db.GetFeedFollowsForUser(s.ctx, user.ID)
 	if err != nil {
 		return fmt.Errorf("failed to get feeds: %w", err)
 	}
