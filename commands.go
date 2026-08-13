@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"html"
 	"net/http"
-	"os"
 	"strings"
 	"time"
 
@@ -46,6 +45,13 @@ type RSSFeed struct {
 	} `xml:"channel"`
 }
 
+// newTimestampedID generates a new UUID and matching CreatedAt/UpdatedAt
+// timestamps for use in database create params.
+func newTimestampedID() (uuid.UUID, time.Time, time.Time) {
+	now := time.Now()
+	return uuid.New(), now, now
+}
+
 func handlerLogin(s *state, cmd command) error {
 	if len(cmd.args) < 1 {
 		return errors.New("no arguments provided for login command")
@@ -54,8 +60,7 @@ func handlerLogin(s *state, cmd command) error {
 		return errors.New("usage: login <username>")
 	}
 	if _, err := s.db.GetUserByName(context.Background(), cmd.args[0]); err != nil {
-		fmt.Fprintln(os.Stderr, "user does not exist:", err)
-		os.Exit(1)
+		return fmt.Errorf("user does not exist: %w", err)
 	}
 	err := s.cfg_ptr.SetUser(cmd.args[0])
 	if err != nil {
@@ -70,29 +75,27 @@ func handlerRegisterUser(s *state, cmd command) error {
 		return errors.New("no arguments provided for register command")
 	}
 
+	id, createdAt, updatedAt := newTimestampedID()
 	userParams := database.CreateUserParams{
-		ID:        uuid.New(),
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		ID:        id,
+		CreatedAt: createdAt,
+		UpdatedAt: updatedAt,
 		Name:      cmd.args[0],
 	}
 
 	_, err := s.db.CreateUser(context.Background(), userParams)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "could not create user:", err)
-		os.Exit(1)
+		return fmt.Errorf("could not create user: %w", err)
 	}
 
 	err = s.cfg_ptr.SetUser(cmd.args[0])
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "could not set current user:", err)
-		os.Exit(1)
+		return fmt.Errorf("could not set current user: %w", err)
 	}
 	println("User registered:", cmd.args[0])
 	userData, err := s.db.GetUserByName(context.Background(), cmd.args[0])
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "could not fetch newly created user:", err)
-		os.Exit(1)
+		return fmt.Errorf("could not fetch newly created user: %w", err)
 	}
 	fmt.Printf("User data: %+v\n", userData)
 	return nil
@@ -122,8 +125,7 @@ func handlerReset(s *state, cmd command) error {
 	}
 	err := s.db.Reset(context.Background())
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "could not reset database:", err)
-		os.Exit(1)
+		return fmt.Errorf("could not reset database: %w", err)
 	}
 	println("Database reset successfully.")
 	return nil
@@ -169,10 +171,11 @@ func handlerAddFeed(s *state, cmd command, user database.User) error {
 	name := cmd.args[0]
 	url := cmd.args[1]
 
+	feedID, feedCreatedAt, feedUpdatedAt := newTimestampedID()
 	feedParams := database.CreateFeedParams{
-		ID:        uuid.New(),
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		ID:        feedID,
+		CreatedAt: feedCreatedAt,
+		UpdatedAt: feedUpdatedAt,
 		Name:      name,
 		Url:       url,
 		UserID:    user.ID,
@@ -183,10 +186,11 @@ func handlerAddFeed(s *state, cmd command, user database.User) error {
 		return fmt.Errorf("failed to create feed in database: %w", err)
 	}
 
+	followID, followCreatedAt, followUpdatedAt := newTimestampedID()
 	_, err = s.db.CreateFeedFollow(context.Background(), database.CreateFeedFollowParams{
-		ID:        uuid.New(),
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		ID:        followID,
+		CreatedAt: followCreatedAt,
+		UpdatedAt: followUpdatedAt,
 		UserID:    user.ID,
 		FeedID:    feed.ID,
 	})
@@ -236,10 +240,11 @@ func handlerFollowFeed(s *state, cmd command, user database.User) error {
 		return fmt.Errorf("failed to get feed by URL: %w", err)
 	}
 
+	id, createdAt, updatedAt := newTimestampedID()
 	followParams := database.CreateFeedFollowParams{
-		ID:        uuid.New(),
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		ID:        id,
+		CreatedAt: createdAt,
+		UpdatedAt: updatedAt,
 		UserID:    user.ID,
 		FeedID:    feed.FeedID,
 	}
