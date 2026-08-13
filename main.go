@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 
+	"example.com/blog-aggregator/internal/cli"
 	"example.com/blog-aggregator/internal/config"
 	"example.com/blog-aggregator/internal/database"
 	_ "github.com/lib/pq"
@@ -17,8 +18,6 @@ func main() {
 		log.Fatal(err)
 	}
 
-	s := state{cfg_ptr: &cfg}
-
 	db, err := sql.Open("postgres", cfg.DBUrl)
 	if err != nil {
 		log.Fatal(err)
@@ -27,21 +26,19 @@ func main() {
 
 	dbQueries := database.New(db)
 
-	s.db = dbQueries
+	s := cli.NewState(dbQueries, &cfg)
 
-	cmds := commands{
-		handlers: make(map[string]func(*state, command) error),
-	}
-	cmds.registerCommand("login", handlerLogin)
-	cmds.registerCommand("register", handlerRegisterUser)
-	cmds.registerCommand("reset", handlerReset)
-	cmds.registerCommand("users", handlerGetUsers)
-	cmds.registerCommand("agg", handlerAggregateFeeds)
-	cmds.registerCommand("addfeed", middlewareLoggedIn(handlerAddFeed))
-	cmds.registerCommand("feeds", handlerGetFeeds)
-	cmds.registerCommand("follow", middlewareLoggedIn(handlerFollowFeed))
-	cmds.registerCommand("unfollow", middlewareLoggedIn(handlerUnfollowFeed))
-	cmds.registerCommand("following", middlewareLoggedIn(handlerPrintFeedsForUser))
+	cmds := cli.Commands{}
+	cmds.RegisterCommand("login", cli.HandlerLogin)
+	cmds.RegisterCommand("register", cli.HandlerRegisterUser)
+	cmds.RegisterCommand("reset", cli.HandlerReset)
+	cmds.RegisterCommand("users", cli.HandlerGetUsers)
+	cmds.RegisterCommand("agg", cli.HandlerAggregateFeeds)
+	cmds.RegisterCommand("addfeed", cli.MiddlewareLoggedIn(cli.HandlerAddFeed))
+	cmds.RegisterCommand("feeds", cli.HandlerGetFeeds)
+	cmds.RegisterCommand("follow", cli.MiddlewareLoggedIn(cli.HandlerFollowFeed))
+	cmds.RegisterCommand("unfollow", cli.MiddlewareLoggedIn(cli.HandlerUnfollowFeed))
+	cmds.RegisterCommand("following", cli.MiddlewareLoggedIn(cli.HandlerPrintFeedsForUser))
 
 	if len(os.Args) < 2 {
 		fmt.Fprintln(os.Stderr, "not enough arguments provided, a command name is required")
@@ -50,9 +47,9 @@ func main() {
 
 	cmdName := os.Args[1]
 	cmdArgs := os.Args[2:]
-	cmd := command{name: cmdName, args: cmdArgs}
+	cmd := cli.Command{Name: cmdName, Args: cmdArgs}
 
-	err = cmds.run(&s, cmd)
+	err = cmds.Run(s, cmd)
 	if err != nil {
 		log.Fatal(err)
 	}
