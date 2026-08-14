@@ -20,3 +20,21 @@ SELECT feeds.name AS feed_name, feeds.url, users.name AS user_name, feeds.id AS 
 FROM feeds
 JOIN users ON feeds.user_id = users.id
 WHERE feeds.url = $1;
+
+-- name: GetFeedByID :one
+SELECT feeds.name AS feed_name, feeds.url, users.name AS user_name, feeds.id AS feed_id
+FROM feeds
+JOIN users ON feeds.user_id = users.id
+WHERE feeds.id = $1;
+
+-- name: MarkFeedFetched :one
+UPDATE feeds
+SET last_fetched_at = NOW(), updated_at = NOW()
+WHERE feeds.id = $1
+RETURNING *;
+
+-- name: GetNextFeedToFetch :one
+SELECT *
+FROM feeds
+ORDER BY feeds.last_fetched_at ASC NULLS FIRST
+LIMIT 1;

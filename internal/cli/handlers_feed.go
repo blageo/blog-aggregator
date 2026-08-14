@@ -4,26 +4,82 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"example.com/blog-aggregator/internal/database"
 )
 
-// HandlerAggregateFeeds fetches a feed and prints its contents to the
+// ScrapeFeeds fetches the next feed to scrape from the database, marks it as fetched, and prints its items.
+// meant to be run as a continuous loop inside handler for agg
+func ScrapeFeeds(s *State) error {
+	nextFeed, err := s.db.GetNextFeedToFetch(s.ctx)
+	if err != nil {
+		return fmt.Errorf("no feed to fetch: %w", err)
+	}
+
+	feedData, err := fetchFeed(s.ctx, nextFeed.Url)
+	if err != nil {
+		return fmt.Errorf("failed to fetch feed: %w", err)
+	}
+
+	if _, err := s.db.MarkFeedFetched(s.ctx, nextFeed.ID); err != nil {
+		return fmt.Errorf("failed to mark feed as fetched: %w", err)
+	}
+
+	fmt.Println(strings.Repeat("=", 60))
+	fmt.Printf("📡 %s\n🕒 Fetched at - %s\n", feedData.Channel.Title, time.Now().Format(time.RFC1123))
+	fmt.Println(strings.Repeat("-", 60))
+
+	for i, item := range feedData.Channel.Item {
+		fmt.Printf("%2d. %s\n", i+1, item.Title)
+		fmt.Printf("    🔗 %s\n", item.Link)
+		fmt.Printf("    🕒 %s\n", item.PubDate)
+		fmt.Println()
+	}
+
+	return nil
+}
+
+// HandlerAgg is the main handler for the "agg" command, which continuously scrapes feeds in a loop.
+func HandlerAgg(s *State, cmd Command) error {
+	if len(cmd.Args) < 1 {
+		return errors.New("must supply a duration between requests, usage: agg <duration> (e.g., 1s, 1m, 1h)")
+	}
+
+	durationStr := cmd.Args[0]
+	duration, err := time.ParseDuration(durationStr)
+	if err != nil {
+		return fmt.Errorf("invalid duration format: %w", err)
+	}
+
+	fmt.Printf("Collecting feeds every %s...\n", durationStr)
+
+	ticker := time.NewTicker(duration)
+	defer ticker.Stop()
+	for ; ; <-ticker.C {
+		err := ScrapeFeeds(s)
+		if err != nil {
+			fmt.Printf("Error scraping feeds: %v\n", err)
+		}
+	}
+}
+
+// HandlerAggregateFeeds fetches a single hardcoded feed and prints its contents to the
 // terminal.
-func HandlerAggregateFeeds(s *State, cmd Command) error {
+func HandlerAggregateFeed(s *State, cmd Command) error {
 	feedURL := "https://www.wagslane.dev/index.xml"
 
-	feed, err := fetchFeed(s.ctx, feedURL)
+	feedData, err := fetchFeed(s.ctx, feedURL)
 	if err != nil {
 		return fmt.Errorf("failed to fetch feed: %w", err)
 	}
 
 	fmt.Println(strings.Repeat("=", 60))
-	fmt.Printf("Feed Title: %s\n", feed.Channel.Title)
-	fmt.Printf("Description: %s\n", feed.Channel.Description)
+	fmt.Printf("Feed Title: %s\n", feedData.Channel.Title)
+	fmt.Printf("Description: %s\n", feedData.Channel.Description)
 	fmt.Println(strings.Repeat("-", 60))
-	fmt.Printf("Items (%d):\n\n", len(feed.Channel.Item))
-	for _, item := range feed.Channel.Item {
+	fmt.Printf("Items (%d):\n\n", len(feedData.Channel.Item))
+	for _, item := range feedData.Channel.Item {
 		fmt.Printf("• %s (%s)\n", item.Title, item.Link)
 		fmt.Printf("  Published - %s\n", item.PubDate)
 		if item.Description != "" {
@@ -45,6 +101,10 @@ func HandlerAddFeed(s *State, cmd Command, user database.User) error {
 	}
 	name := cmd.Args[0]
 	url := cmd.Args[1]
+
+	if !strings.Contains(url, "://") {
+		return fmt.Errorf("invalid feed URL %q: usage: addfeed \"<name>\" <url>", url)
+	}
 
 	feedID, feedCreatedAt, feedUpdatedAt := newTimestampedID()
 	feedParams := database.CreateFeedParams{
