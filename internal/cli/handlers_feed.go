@@ -29,9 +29,9 @@ func ScrapeFeeds(s *State) error {
 	}
 
 	for _, item := range feedData.Channel.Item {
-		publishedAt, err := parsePubDate(item.PubDate)
-		if err != nil {
-			publishedAt = time.Now()
+		var publishedAt sql.NullTime
+		if parsed, err := parsePubDate(item.PubDate); err == nil {
+			publishedAt = sql.NullTime{Time: parsed, Valid: true}
 		}
 
 		postID, postCreatedAt, postUpdatedAt := newTimestampedID()
