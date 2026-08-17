@@ -42,6 +42,7 @@ func main() {
 	cmds.RegisterCommand("follow", cli.MiddlewareLoggedIn(cli.HandlerFollowFeed))
 	cmds.RegisterCommand("unfollow", cli.MiddlewareLoggedIn(cli.HandlerUnfollowFeed))
 	cmds.RegisterCommand("following", cli.MiddlewareLoggedIn(cli.HandlerPrintFeedsForUser))
+	cmds.RegisterCommand("browse", cli.MiddlewareLoggedIn(cli.HandlerBrowseUserFeeds))
 
 	if len(os.Args) < 2 {
 		fmt.Fprintln(os.Stderr, "not enough arguments provided, a command name is required")

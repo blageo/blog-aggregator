@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"strconv"
 	"strings"
 	"time"
 
@@ -107,6 +108,40 @@ func HandlerAggregateFeed(s *State, cmd Command) error {
 		fmt.Println()
 	}
 	fmt.Println(strings.Repeat("=", 60))
+
+	return nil
+}
+
+func HandlerBrowseUserFeeds(s *State, cmd Command, user database.User) error {
+	limit := 2
+	if len(cmd.Args) > 1 {
+		return errors.New("browse command takes at most one argument, usage: browse [limit]")
+	}
+	if len(cmd.Args) == 1 {
+		parsedLimit, err := strconv.Atoi(cmd.Args[0])
+		if err != nil {
+			return fmt.Errorf("invalid limit %q: %w", cmd.Args[0], err)
+		}
+		limit = parsedLimit
+	}
+
+	posts, err := s.db.GetPostsForUser(s.ctx, database.GetPostsForUserParams{
+		UserID: user.ID,
+		Limit:  int32(limit),
+	})
+	if err != nil {
+		return fmt.Errorf("failed to get posts for user: %w", err)
+	}
+
+	if len(posts) == 0 {
+		fmt.Println("No posts found.")
+		return nil
+	}
+
+	fmt.Println("Posts:")
+	for _, post := range posts {
+		fmt.Printf("- %s (%s)\n", post.Title, post.Url)
+	}
 
 	return nil
 }
