@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"html"
 	"net/http"
+	"time"
 )
 
 // RSSItem represents a single <item> entry within an RSS feed.
@@ -61,4 +62,24 @@ func fetchFeed(ctx context.Context, feedURL string) (*RSSFeed, error) {
 
 	return &feed, nil
 
+}
+
+var pubDateLayouts = []string{
+	time.RFC1123Z,
+	time.RFC1123,
+	time.RFC3339,
+	"Mon, 2 Jan 2006 15:04:05 -0700",
+}
+
+// parsePubDate attempts to parse an RSS <pubDate> string using several common layouts.
+func parsePubDate(s string) (time.Time, error) {
+	var err error
+	for _, layout := range pubDateLayouts {
+		var t time.Time
+		t, err = time.Parse(layout, s)
+		if err == nil {
+			return t, nil
+		}
+	}
+	return time.Time{}, err
 }

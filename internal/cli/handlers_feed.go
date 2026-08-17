@@ -1,8 +1,10 @@
 package cli
 
 import (
+	"database/sql"
 	"errors"
 	"fmt"
+	"log"
 	"strings"
 	"time"
 
@@ -26,15 +28,31 @@ func ScrapeFeeds(s *State) error {
 		return fmt.Errorf("failed to mark feed as fetched: %w", err)
 	}
 
-	fmt.Println(strings.Repeat("=", 60))
-	fmt.Printf("📡 %s\n🕒 Fetched at - %s\n", feedData.Channel.Title, time.Now().Format(time.RFC1123))
-	fmt.Println(strings.Repeat("-", 60))
+	for _, item := range feedData.Channel.Item {
+		publishedAt, err := parsePubDate(item.PubDate)
+		if err != nil {
+			publishedAt = time.Now()
+		}
 
-	for i, item := range feedData.Channel.Item {
-		fmt.Printf("%2d. %s\n", i+1, item.Title)
-		fmt.Printf("    🔗 %s\n", item.Link)
-		fmt.Printf("    🕒 %s\n", item.PubDate)
-		fmt.Println()
+		postID, postCreatedAt, postUpdatedAt := newTimestampedID()
+		postParams := database.CreatePostParams{
+			ID:          postID,
+			CreatedAt:   postCreatedAt,
+			UpdatedAt:   postUpdatedAt,
+			Title:       item.Title,
+			Url:         item.Link,
+			Description: sql.NullString{String: item.Description, Valid: item.Description != ""},
+			PublishedAt: publishedAt,
+			FeedID:      nextFeed.ID,
+		}
+
+		if _, err := s.db.CreatePost(s.ctx, postParams); err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				continue
+			}
+			log.Printf("failed to create post %q: %v", postParams.Url, err)
+			continue
+		}
 	}
 
 	return nil
