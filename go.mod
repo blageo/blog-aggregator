@@ -1,4 +1,4 @@
-module example.com/blog-aggregator
+module github.com/blageo/blog-aggregator
 
 go 1.25.5
 

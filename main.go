@@ -7,9 +7,9 @@ import (
 	"log"
 	"os"
 
-	"example.com/blog-aggregator/internal/cli"
-	"example.com/blog-aggregator/internal/config"
-	"example.com/blog-aggregator/internal/database"
+	"github.com/blageo/blog-aggregator/internal/cli"
+	"github.com/blageo/blog-aggregator/internal/config"
+	"github.com/blageo/blog-aggregator/internal/database"
 	_ "github.com/lib/pq"
 )
 

@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"time"
 
-	"example.com/blog-aggregator/internal/config"
-	"example.com/blog-aggregator/internal/database"
+	"github.com/blageo/blog-aggregator/internal/config"
+	"github.com/blageo/blog-aggregator/internal/database"
 	"github.com/google/uuid"
 )
 

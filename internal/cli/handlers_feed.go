@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"example.com/blog-aggregator/internal/database"
+	"github.com/blageo/blog-aggregator/internal/database"
 )
 
 // ScrapeFeeds fetches the next feed to scrape from the database, marks it as fetched, and prints its items.

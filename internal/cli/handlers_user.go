@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 
-	"example.com/blog-aggregator/internal/database"
+	"github.com/blageo/blog-aggregator/internal/database"
 )
 
 // HandlerLogin sets the current user in the config, provided the user
