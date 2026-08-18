@@ -1,8 +1,6 @@
 # blog-aggregator (gator)
 
-A command-line RSS feed aggregator, written in Go. It stores users, feeds,
-and posts in Postgres, lets users follow feeds, and can continuously
-aggregate new posts in the background.
+A command-line RSS feed aggregator, written in Go.
 
 This was built as a guided project for boot.dev.
 
@@ -20,15 +18,7 @@ go install github.com/blageo/blog-aggregator@latest
 ```
 
 This builds a binary named `blog-aggregator` (Go names the binary after the
-module, not the repo). If you'd rather type `gator`, rename or alias it,
-e.g.:
-
-```
-ln -s "$(go env GOPATH)/bin/blog-aggregator" "$(go env GOPATH)/bin/gator"
-```
-
-The rest of this README refers to the command as `gator` for brevity, but
-substitute `blog-aggregator` if you didn't create an alias.
+module, not the repo).
 
 ## Configuration
 
@@ -77,8 +67,8 @@ goose postgres "postgres://username:password@localhost:5432/gator?sslmode=disabl
 ## Typical first run
 
 ```
-gator register alice
-gator addfeed "Boot.dev Blog" https://blog.boot.dev/index.xml
-gator agg 1m        # in another terminal, leave running
-gator browse 5
+blog-aggregator register alice
+blog-aggregator addfeed "Boot.dev Blog" https://blog.boot.dev/index.xml
+blog-aggregator agg 1m        # in another terminal, leave running
+blog-aggregator browse 5
 ```
